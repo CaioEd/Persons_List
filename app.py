@@ -1,38 +1,48 @@
-from flask import Flask, jsonify
-import json
+from flask import Flask, request, jsonify
+import requests
 
 app = Flask(__name__)
 
-# CARREGAR JSON
-def data_json():
-    with open('data.json') as arquivo_json:
-        data = json.load(arquivo_json)
-    return data
+# VARIÁVEL QUE GUARDA OS DADOS
+data = [
+    {"id": 1, "name": "Caio", "action": "comer"},
+    {"id": 2, "name": "João", "action": "correr"},
+    {"id": 3, "name": "Maria", "action": "dormir"}
+]
 
+json_url = "http://ec2-34-230-24-198.compute-1.amazonaws.com/records"
 
+# ROTA HOME
 @app.route('/')
 def home():
-    return "Hello, World!"
+    return('Hello, World!')
 
 
+# ROTA GET - RETORNA TODOS OS USUÁRIO
 @app.route('/persons', methods=['GET'])
-def persons():
-    data = data_json()
+def get_persons():
     return jsonify(data)
 
 
 @app.route('/persons/<action>', methods=['GET'])
-def person_action(action):
-    data = data_json()
+def get_persons_action(action):
+    filtered_persons = [person for person in data if person['action'] == action]
 
-    # FILTRA USUÁRIOS QUE POSSUEM A AÇÃO
-    filtrados = [person for person in data if person.get('action') == action]
-
-    if filtrados:
-        return jsonify(filtrados)
+    if filtered_persons:
+        return jsonify(filtered_persons)
     else:
-        return jsonify({"message": "Nenhum usuário encontrado!"})
+        return jsonify({"message": "Nenhum usuário encontrado com essa ação!"}), 404
+
+
+@app.route('/persons', methods=['POST'])
+def add_persons():
+
+    response = requests.get(json_url)
+    response.raise_for_status()
+
+    new_persons = response.json()
+    data.extend(new_persons)
 
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    app.run(debug=True)
